@@ -1,6 +1,8 @@
-import { Plus, Mail, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Mail, Shield, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewUsuarioDialog } from "@/components/usuarios/NewUsuarioDialog";
+import { EditUsuarioDialog } from "@/components/usuarios/EditUsuarioDialog";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,24 +14,116 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
-const usersData = [
-  { id: 1, name: "João Silva", email: "joao@barden.com", role: "Administrador", access: "total", status: "ativo" },
-  { id: 2, name: "Maria Santos", email: "maria@barden.com", role: "Gerente de Vendas", access: "vendas", status: "ativo" },
-  { id: 3, name: "Carlos Oliveira", email: "carlos@barden.com", role: "Desenvolvedor", access: "projetos", status: "ativo" },
-  { id: 4, name: "Ana Costa", email: "ana@barden.com", role: "Financeiro", access: "financeiro", status: "ativo" },
-  { id: 5, name: "Pedro Alves", email: "pedro@barden.com", role: "Suporte", access: "basico", status: "inativo" },
-];
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  user_roles: { role: 'admin' | 'funcionario' }[];
+}
 
-const accessColors: Record<string, string> = {
-  total: "bg-primary/20 text-primary",
-  vendas: "bg-success/20 text-success",
-  projetos: "bg-purple-500/20 text-purple-500",
-  financeiro: "bg-yellow-500/20 text-yellow-500",
-  basico: "bg-muted text-muted-foreground",
+const roleMap: Record<string, { label: string; className: string }> = {
+  admin: { label: "Administrador", className: "bg-primary/20 text-primary" },
+  funcionario: { label: "Funcionário", className: "bg-muted text-muted-foreground" },
 };
 
 const Usuarios = () => {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const loadUsers = async () => {
+    // Don't set loading to true on re-fetches from subscriptions
+    if (users.length === 0) setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          name,
+          email,
+          user_roles (
+            role
+          )
+        `);
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar usuários:", error);
+      toast.error("Erro ao carregar usuários");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+
+    const channel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => loadUsers()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_roles' },
+        () => loadUsers()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleEdit = (user: UserProfile) => {
+    setSelectedUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (user: UserProfile) => {
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedUser) return;
+    
+    toast.info("Função em desenvolvimento", {
+      description: "A exclusão segura de usuários será implementada em breve.",
+    });
+    setIsDeleteDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const totalUsuarios = users.length;
+  const administradores = users.filter(u => u.user_roles[0]?.role === 'admin').length;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -42,26 +136,16 @@ const Usuarios = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6 shadow-card">
           <p className="text-sm text-muted-foreground mb-1">Total de Usuários</p>
-          <p className="text-3xl font-bold text-foreground">{usersData.length}</p>
-        </Card>
-        <Card className="p-6 shadow-card">
-          <p className="text-sm text-muted-foreground mb-1">Ativos</p>
-          <p className="text-3xl font-bold text-success">
-            {usersData.filter(u => u.status === 'ativo').length}
-          </p>
+          <p className="text-3xl font-bold text-foreground">{isLoading ? "..." : totalUsuarios}</p>
         </Card>
         <Card className="p-6 shadow-card">
           <p className="text-sm text-muted-foreground mb-1">Administradores</p>
           <p className="text-3xl font-bold text-primary">
-            {usersData.filter(u => u.access === 'total').length}
+            {isLoading ? "..." : administradores}
           </p>
-        </Card>
-        <Card className="p-6 shadow-card">
-          <p className="text-sm text-muted-foreground mb-1">Novos (30 dias)</p>
-          <p className="text-3xl font-bold text-yellow-500">2</p>
         </Card>
       </div>
 
@@ -71,76 +155,106 @@ const Usuarios = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Usuário</TableHead>
-              <TableHead>Cargo</TableHead>
-              <TableHead>Nível de Acesso</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Função</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {usersData.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary text-white">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-foreground">{user.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {user.email}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>
-                  <Badge className={accessColors[user.access]}>
-                    <Shield className="w-3 h-3 mr-1" />
-                    {user.access.charAt(0).toUpperCase() + user.access.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={user.status === 'ativo' ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}>
-                    {user.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline" size="sm">
-                    Gerenciar
-                  </Button>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-24 text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                 </TableCell>
               </TableRow>
-            ))}
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-24 text-center">
+                  Nenhum usuário encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => {
+                const roleInfo = roleMap[user.user_roles[0]?.role] || roleMap.funcionario;
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback className="bg-primary text-white">
+                            {user.name?.split(' ').map(n => n[0]).join('') || user.email[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{user.name || 'Nome não definido'}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={roleInfo.className}>
+                        <Shield className="w-3 h-3 mr-1" />
+                        {roleInfo.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {currentUser?.id !== user.id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(user)} className="gap-2 cursor-pointer">
+                              <Edit className="w-4 h-4" />
+                              Editar Função
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(user)} className="gap-2 text-destructive focus:text-destructive cursor-pointer">
+                              <Trash2 className="w-4 h-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </Card>
 
-      {/* Permissions Card */}
-      <Card className="p-6 shadow-card">
-        <h3 className="text-lg font-semibold mb-4">Níveis de Permissão</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg bg-card-hover border border-border">
-            <h4 className="font-semibold text-primary mb-2">Acesso Total</h4>
-            <p className="text-sm text-muted-foreground">Controle completo do sistema</p>
-          </div>
-          <div className="p-4 rounded-lg bg-card-hover border border-border">
-            <h4 className="font-semibold text-success mb-2">Vendas</h4>
-            <p className="text-sm text-muted-foreground">Leads, propostas e clientes</p>
-          </div>
-          <div className="p-4 rounded-lg bg-card-hover border border-border">
-            <h4 className="font-semibold text-purple-500 mb-2">Projetos</h4>
-            <p className="text-sm text-muted-foreground">Gerenciamento de projetos</p>
-          </div>
-          <div className="p-4 rounded-lg bg-card-hover border border-border">
-            <h4 className="font-semibold text-yellow-500 mb-2">Financeiro</h4>
-            <p className="text-sm text-muted-foreground">Controle financeiro</p>
-          </div>
-        </div>
-      </Card>
+      {/* Edit Dialog */}
+      {selectedUser && (
+        <EditUsuarioDialog
+          user={selectedUser}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onUserUpdate={loadUsers}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir o usuário {selectedUser?.name}. Esta ação é experimental e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedUser(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
