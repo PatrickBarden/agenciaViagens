@@ -1,18 +1,9 @@
-import { useState } from "react";
-import { Plus, Search, Phone, Mail, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Phone, Mail, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,14 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const leadsData = [
-  { id: 1, name: "João Silva", email: "joao@email.com", phone: "(11) 98765-4321", status: "novo", origin: "Site", value: "R$ 15.000" },
-  { id: 2, name: "Maria Santos", email: "maria@email.com", phone: "(11) 91234-5678", status: "contato", origin: "Indicação", value: "R$ 25.000" },
-  { id: 3, name: "Carlos Oliveira", email: "carlos@email.com", phone: "(21) 99876-5432", status: "proposta", origin: "LinkedIn", value: "R$ 35.000" },
-  { id: 4, name: "Ana Costa", email: "ana@email.com", phone: "(11) 98888-7777", status: "negociacao", origin: "Site", value: "R$ 45.000" },
-  { id: 5, name: "Pedro Alves", email: "pedro@email.com", phone: "(31) 97777-6666", status: "novo", origin: "Facebook", value: "R$ 18.000" },
-];
+interface Lead {
+  id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  status: string | null;
+  origem: string | null;
+  valor_potencial: number | null;
+}
 
 const statusColors: Record<string, string> = {
   novo: "bg-blue-500/20 text-blue-500",
@@ -37,13 +33,68 @@ const statusColors: Record<string, string> = {
   fechado: "bg-success/20 text-success",
 };
 
-const Leads = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [open, setOpen] = useState(false);
+const statusLabels: Record<string, string> = {
+  novo: "Novo",
+  contato: "Contato Feito",
+  proposta: "Proposta Enviada",
+  negociacao: "Em Negociação",
+  fechado: "Fechado",
+};
 
-  const filteredLeads = leadsData.filter(lead =>
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+const Leads = () => {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const loadLeads = async () => {
+    try {
+      let query = supabase.from("clientes").select("*");
+
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar leads:", error);
+      toast.error("Erro ao carregar leads");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLeads();
+
+    const channel = supabase
+      .channel('clientes-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clientes' },
+        () => loadLeads()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [statusFilter]);
+
+  const formatCurrency = (value: number | null) => {
+    if (value === null || value === undefined) return "N/A";
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const filteredLeads = leads.filter(lead =>
+    lead.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -54,56 +105,10 @@ const Leads = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Leads e Clientes</h1>
           <p className="text-muted-foreground">Gerencie seus leads e oportunidades</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 shadow-primary">
-              <Plus className="w-4 h-4" />
-              Novo Lead
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card">
-            <DialogHeader>
-              <DialogTitle>Cadastrar Novo Lead</DialogTitle>
-              <DialogDescription>Preencha as informações do novo lead</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div>
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input id="name" placeholder="Digite o nome" className="mt-1.5" />
-              </div>
-              <div>
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" placeholder="email@exemplo.com" className="mt-1.5" />
-              </div>
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
-                <Input id="phone" placeholder="(00) 00000-0000" className="mt-1.5" />
-              </div>
-              <div>
-                <Label htmlFor="origin">Origem</Label>
-                <Select>
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue placeholder="Selecione a origem" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    <SelectItem value="site">Site</SelectItem>
-                    <SelectItem value="indicacao">Indicação</SelectItem>
-                    <SelectItem value="linkedin">LinkedIn</SelectItem>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="value">Valor Potencial</Label>
-                <Input id="value" placeholder="R$ 0,00" className="mt-1.5" />
-              </div>
-              <Button className="w-full">Cadastrar Lead</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <NewLeadDialog />
       </div>
 
-      {/* Search */}
+      {/* Search and Filter */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -114,7 +119,7 @@ const Leads = () => {
             className="pl-10"
           />
         </div>
-        <Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
@@ -129,43 +134,57 @@ const Leads = () => {
       </div>
 
       {/* Leads Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredLeads.map((lead) => (
-          <Card key={lead.id} className="p-6 hover-lift shadow-card cursor-pointer">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">{lead.name}</h3>
-                <Badge className={statusColors[lead.status]}>
-                  {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                </Badge>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Valor</p>
-                <p className="text-lg font-bold text-primary">{lead.value}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="w-4 h-4" />
-                <span>{lead.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="w-4 h-4" />
-                <span>{lead.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span>Origem: {lead.origin}</span>
-              </div>
-            </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredLeads.length === 0 ? (
+        <Card className="p-12 text-center shadow-card">
+          <p className="text-muted-foreground mb-4">Nenhum lead encontrado</p>
+          <p className="text-sm text-muted-foreground">Tente ajustar os filtros ou adicione um novo lead</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredLeads.map((lead) => {
+            const status = lead.status || 'novo';
+            return (
+              <Card key={lead.id} className="p-6 hover-lift shadow-card cursor-pointer">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">{lead.nome}</h3>
+                    <Badge className={statusColors[status]}>
+                      {statusLabels[status] || status}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Valor</p>
+                    <p className="text-lg font-bold text-primary">{formatCurrency(lead.valor_potencial)}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="w-4 h-4" />
+                    <span>{lead.email || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="w-4 h-4" />
+                    <span>{lead.telefone || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>Origem: {lead.origem || "N/A"}</span>
+                  </div>
+                </div>
 
-            <div className="mt-4 pt-4 border-t border-border">
-              <Button variant="outline" className="w-full">Ver Detalhes</Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button variant="outline" className="w-full">Ver Detalhes</Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
