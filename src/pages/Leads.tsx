@@ -34,18 +34,20 @@ interface Lead {
 
 const statusColors: Record<string, string> = {
   novo: "bg-blue-500/20 text-blue-500",
-  contato_feito: "bg-yellow-500/20 text-yellow-500",
-  proposta_enviada: "bg-purple-500/20 text-purple-500",
-  em_negociacao: "bg-green-500/20 text-green-500",
-  fechado: "bg-success/20 text-success",
+  contatado: "bg-yellow-500/20 text-yellow-500",
+  proposta: "bg-purple-500/20 text-purple-500",
+  negociacao: "bg-green-500/20 text-green-500",
+  ganho: "bg-success/20 text-success",
+  perdido: "bg-destructive/20 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
   novo: "Novo",
-  contato_feito: "Contato Feito",
-  proposta_enviada: "Proposta Enviada",
-  em_negociacao: "Em Negociação",
-  fechado: "Fechado",
+  contatado: "Contatado",
+  proposta: "Proposta",
+  negociacao: "Negociação",
+  ganho: "Ganho",
+  perdido: "Perdido",
 };
 
 const Leads = () => {
@@ -141,10 +143,11 @@ const Leads = () => {
           <SelectContent className="bg-popover">
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="novo">Novo</SelectItem>
-            <SelectItem value="contato_feito">Contato Feito</SelectItem>
-            <SelectItem value="proposta_enviada">Proposta Enviada</SelectItem>
-            <SelectItem value="em_negociacao">Em Negociação</SelectItem>
-            <SelectItem value="fechado">Fechado</SelectItem>
+            <SelectItem value="contatado">Contatado</SelectItem>
+            <SelectItem value="proposta">Proposta</SelectItem>
+            <SelectItem value="negociacao">Negociação</SelectItem>
+            <SelectItem value="ganho">Ganho</SelectItem>
+            <SelectItem value="perdido">Perdido</SelectItem>
           </SelectContent>
         </Select>
       </div>
