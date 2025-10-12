@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Phone, Mail, MapPin, Loader2 } from "lucide-react";
+import { Search, Phone, Mail, MapPin, Loader2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
+import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -46,8 +53,11 @@ const Leads = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const loadLeads = async () => {
+    if (leads.length === 0) setIsLoading(true);
     try {
       let query = supabase.from("clientes").select("*");
 
@@ -92,6 +102,11 @@ const Leads = () => {
     }).format(value);
   };
 
+  const handleEdit = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsEditDialogOpen(true);
+  };
+
   const filteredLeads = leads.filter(lead =>
     lead.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -129,6 +144,7 @@ const Leads = () => {
             <SelectItem value="contato">Contato Feito</SelectItem>
             <SelectItem value="proposta">Proposta Enviada</SelectItem>
             <SelectItem value="negociacao">Em Negociação</SelectItem>
+            <SelectItem value="fechado">Fechado</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -148,7 +164,7 @@ const Leads = () => {
           {filteredLeads.map((lead) => {
             const status = lead.status || 'novo';
             return (
-              <Card key={lead.id} className="p-6 hover-lift shadow-card cursor-pointer">
+              <Card key={lead.id} className="p-6 hover-lift shadow-card">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-foreground mb-1">{lead.nome}</h3>
@@ -177,13 +193,37 @@ const Leads = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-border">
-                  <Button variant="outline" className="w-full">Ver Detalhes</Button>
+                <div className="mt-4 pt-4 border-t border-border flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        Ações <MoreHorizontal className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(lead)} className="gap-2 cursor-pointer">
+                        <Edit className="w-4 h-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive cursor-pointer">
+                        <Trash2 className="w-4 h-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </Card>
             );
           })}
         </div>
+      )}
+
+      {selectedLead && (
+        <EditLeadDialog
+          lead={selectedLead}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
       )}
     </div>
   );
