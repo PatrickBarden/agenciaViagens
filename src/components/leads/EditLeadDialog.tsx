@@ -44,7 +44,7 @@ const leadSchema = z.object({
   email: z.string().email({ message: "Email inválido." }).optional().or(z.literal('')),
   telefone: z.string().optional(),
   origem: z.string().optional(),
-  status: z.enum(["novo", "contatado", "proposta", "negociacao", "ganho", "perdido"]).optional(),
+  status: z.enum(["novo", "analise", "negociacao", "aceita", "recusada"]).optional(),
   valor_potencial: z.string().optional(),
 });
 
@@ -194,11 +194,10 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="novo">Novo</SelectItem>
-                        <SelectItem value="contatado">Contatado</SelectItem>
-                        <SelectItem value="proposta">Proposta</SelectItem>
-                        <SelectItem value="negociacao">Negociação</SelectItem>
-                        <SelectItem value="ganho">Ganho</SelectItem>
-                        <SelectItem value="perdido">Perdido</SelectItem>
+                        <SelectItem value="analise">Em Análise</SelectItem>
+                        <SelectItem value="negociacao">Em Negociação</SelectItem>
+                        <SelectItem value="aceita">Aceito</SelectItem>
+                        <SelectItem value="recusada">Recusado</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
