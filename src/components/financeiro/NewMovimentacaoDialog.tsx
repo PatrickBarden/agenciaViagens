@@ -48,13 +48,20 @@ const movimentacaoSchema = z.object({
     required_error: "Selecione o tipo de movimentação",
   }),
   data: z.string().min(1, { message: "Data é obrigatória" }),
+  cliente_id: z.string().optional(),
 });
 
 type MovimentacaoFormValues = z.infer<typeof movimentacaoSchema>;
 
+interface Cliente {
+  id: string;
+  nome: string;
+}
+
 export function NewMovimentacaoDialog() {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
 
   const form = useForm<MovimentacaoFormValues>({
     resolver: zodResolver(movimentacaoSchema),
@@ -63,8 +70,31 @@ export function NewMovimentacaoDialog() {
       valor: "",
       tipo: "entrada",
       data: new Date().toISOString().split('T')[0],
+      cliente_id: "",
     },
   });
+
+  const handleOpenChange = async (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      await loadClientes();
+    }
+  };
+
+  const loadClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .order("nome");
+
+      if (error) throw error;
+      setClientes(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error);
+      toast.error("Erro ao carregar lista de clientes");
+    }
+  };
 
   const onSubmit = async (values: MovimentacaoFormValues) => {
     setIsLoading(true);
@@ -86,6 +116,7 @@ export function NewMovimentacaoDialog() {
           tipo: values.tipo,
           data: values.data,
           criado_por: user.id,
+          cliente_id: values.cliente_id || null,
         });
 
       if (error) throw error;
@@ -102,7 +133,7 @@ export function NewMovimentacaoDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="gap-2 shadow-primary">
           <Plus className="w-4 h-4" />
@@ -113,7 +144,7 @@ export function NewMovimentacaoDialog() {
         <DialogHeader>
           <DialogTitle>Nova Movimentação Financeira</DialogTitle>
           <DialogDescription>
-            Registre uma entrada ou saída financeira. Todos os campos são obrigatórios.
+            Registre uma entrada ou saída financeira.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -176,6 +207,32 @@ export function NewMovimentacaoDialog() {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="cliente_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente (Opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vincular a um cliente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

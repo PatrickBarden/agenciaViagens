@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown, DollarSign, Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { NewMovimentacaoDialog } from "@/components/financeiro/NewMovimentacaoDialog";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +15,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, getMonth, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Movimentacao {
@@ -25,6 +24,9 @@ interface Movimentacao {
   valor: number;
   tipo: "entrada" | "saida";
   data: string;
+  clientes?: {
+    nome: string;
+  } | null;
 }
 
 interface ChartData {
@@ -61,11 +63,11 @@ const Financeiro = () => {
     try {
       const { data, error } = await supabase
         .from("financeiro")
-        .select("*")
+        .select("*, clientes(nome)")
         .order("data", { ascending: false });
 
       if (error) throw error;
-      setMovimentacoes(data || []);
+      setMovimentacoes(data as any[] || []);
     } catch (error: any) {
       console.error("Erro ao carregar movimentações:", error);
       toast.error("Erro ao carregar dados financeiros");
@@ -194,6 +196,7 @@ const Financeiro = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Data</TableHead>
@@ -203,6 +206,9 @@ const Financeiro = () => {
               {movimentacoes.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="font-medium">{transaction.descricao}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {transaction.clientes?.nome || "-"}
+                  </TableCell>
                   <TableCell className={transaction.tipo === 'entrada' ? 'text-success' : 'text-destructive'}>
                     {formatCurrency(transaction.valor)}
                   </TableCell>
