@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
@@ -22,16 +21,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
-
-  useEffect(() => {
-    if (!isAuthLoading && user) {
-      navigate(from, { replace: true });
-    }
-  }, [user, isAuthLoading, navigate, from]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,21 +44,13 @@ const Login = () => {
       if (error) throw error;
 
       toast.success('Login realizado com sucesso!');
-      // A navegação agora é tratada pelo useEffect
+      navigate(from, { replace: true });
     } catch (error: any) {
       toast.error(error.message || 'Ocorreu um erro ao fazer login.');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (isAuthLoading || (!isAuthLoading && user)) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <AuthLayout>
