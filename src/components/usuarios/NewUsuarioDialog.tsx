@@ -67,6 +67,7 @@ export function NewUsuarioDialog() {
       
       if (!currentUser) {
         toast.error("Você precisa estar logado");
+        setIsLoading(false);
         return;
       }
 
@@ -80,10 +81,11 @@ export function NewUsuarioDialog() {
 
       if (!roleData) {
         toast.error("Apenas administradores podem criar usuários");
+        setIsLoading(false);
         return;
       }
 
-      // Criar novo usuário
+      // Criar novo usuário na autenticação do Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -98,15 +100,29 @@ export function NewUsuarioDialog() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Atualizar a role se necessário (o trigger já cria como funcionario)
-        if (values.role === "admin") {
-          const { error: roleError } = await supabase
-            .from("user_roles")
-            .update({ role: "admin" })
-            .eq("user_id", authData.user.id);
+        // O processo automático (trigger) no banco de dados parece não estar funcionando.
+        // Vamos inserir os dados do perfil e da função manualmente para garantir a criação.
 
-          if (roleError) throw roleError;
-        }
+        // 1. Inserir na tabela 'profiles'
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({ 
+            id: authData.user.id, 
+            name: values.name, 
+            email: values.email 
+          });
+
+        if (profileError) throw profileError;
+
+        // 2. Inserir na tabela 'user_roles'
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: authData.user.id,
+            role: values.role,
+          });
+
+        if (roleError) throw roleError;
 
         toast.success("Usuário criado com sucesso! Um email de confirmação foi enviado.");
         form.reset();
