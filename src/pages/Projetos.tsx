@@ -10,16 +10,14 @@ import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   planejamento: "bg-blue-500/20 text-blue-500",
-  andamento: "bg-yellow-500/20 text-yellow-500",
-  revisao: "bg-purple-500/20 text-purple-500",
+  execucao: "bg-yellow-500/20 text-yellow-500",
   concluido: "bg-success/20 text-success",
   cancelado: "bg-muted text-muted-foreground",
 };
 
 const statusLabels: Record<string, string> = {
   planejamento: "Planejamento",
-  andamento: "Em Andamento",
-  revisao: "Em Revisão",
+  execucao: "Em Execução",
   concluido: "Concluído",
   cancelado: "Cancelado",
 };
@@ -90,9 +88,10 @@ const Projetos = () => {
   };
 
   const totalProjetos = projetos.length;
-  const emAndamento = projetos.filter(p => p.status === 'andamento').length;
-  const emRevisao = projetos.filter(p => p.status === 'revisao').length;
+  const emAndamento = projetos.filter(p => p.status === 'execucao').length;
   const concluidos = projetos.filter(p => p.status === 'concluido').length;
+  const emPlanejamento = projetos.filter(p => p.status === 'planejamento').length;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -111,15 +110,15 @@ const Projetos = () => {
           <p className="text-3xl font-bold text-foreground">{isLoading ? "..." : totalProjetos}</p>
         </Card>
         <Card className="p-6 shadow-card">
-          <p className="text-sm text-muted-foreground mb-1">Em Andamento</p>
+          <p className="text-sm text-muted-foreground mb-1">Em Execução</p>
           <p className="text-3xl font-bold text-yellow-500">
             {isLoading ? "..." : emAndamento}
           </p>
         </Card>
         <Card className="p-6 shadow-card">
-          <p className="text-sm text-muted-foreground mb-1">Em Revisão</p>
-          <p className="text-3xl font-bold text-purple-500">
-            {isLoading ? "..." : emRevisao}
+          <p className="text-sm text-muted-foreground mb-1">Em Planejamento</p>
+          <p className="text-3xl font-bold text-blue-500">
+            {isLoading ? "..." : emPlanejamento}
           </p>
         </Card>
         <Card className="p-6 shadow-card">
@@ -150,7 +149,7 @@ const Projetos = () => {
                   <p className="text-sm text-muted-foreground mb-3">
                     {projeto.clientes?.nome || "Cliente não encontrado"}
                   </p>
-                  <Badge className={statusColors[projeto.status] || statusColors.planejamento}>
+                  <Badge className={statusColors[projeto.status] || ""}>
                     {statusLabels[projeto.status] || projeto.status}
                   </Badge>
                 </div>

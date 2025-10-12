@@ -44,7 +44,7 @@ const leadSchema = z.object({
   email: z.string().email({ message: "Email inválido." }).optional().or(z.literal('')),
   telefone: z.string().optional(),
   origem: z.string().optional(),
-  status: z.enum(["novo", "analise", "negociacao", "aceita", "recusada"]).optional(),
+  status: z.enum(["novo", "qualificado", "proposta", "negociacao", "ganho", "perdido"]).optional(),
   valor_potencial: z.string().optional(),
 });
 
@@ -99,7 +99,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
 
       toast.success("Lead atualizado com sucesso!");
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: any)
       console.error("Erro ao atualizar lead:", error);
       toast.error(error.message || "Erro ao atualizar lead.");
     } finally {
@@ -194,10 +194,11 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="novo">Novo</SelectItem>
-                        <SelectItem value="analise">Em Análise</SelectItem>
-                        <SelectItem value="negociacao">Em Negociação</SelectItem>
-                        <SelectItem value="aceita">Aceito</SelectItem>
-                        <SelectItem value="recusada">Recusado</SelectItem>
+                        <SelectItem value="qualificado">Qualificado</SelectItem>
+                        <SelectItem value="proposta">Proposta</SelectItem>
+                        <SelectItem value="negociacao">Negociação</SelectItem>
+                        <SelectItem value="ganho">Ganho</SelectItem>
+                        <SelectItem value="perdido">Perdido</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

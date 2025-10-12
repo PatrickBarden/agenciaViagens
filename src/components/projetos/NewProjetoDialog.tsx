@@ -36,7 +36,7 @@ const projetoSchema = z.object({
     .min(3, { message: "Nome deve ter no mínimo 3 caracteres" })
     .max(100, { message: "Nome deve ter no máximo 100 caracteres" }),
   cliente_id: z.string().uuid({ message: "Selecione um cliente válido" }),
-  status: z.enum(["planejamento", "andamento", "revisao", "concluido", "cancelado"], {
+  status: z.enum(["planejamento", "execucao", "concluido", "cancelado"], {
     required_error: "Selecione um status",
   }),
   progresso: z.string()
@@ -114,7 +114,6 @@ export function NewProjetoDialog() {
       toast.success("Projeto criado com sucesso!");
       form.reset();
       setOpen(false);
-      window.location.reload();
     } catch (error: any) {
       console.error("Erro ao criar projeto:", error);
       toast.error(error.message || "Erro ao criar projeto");
@@ -197,8 +196,7 @@ export function NewProjetoDialog() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="planejamento">Planejamento</SelectItem>
-                        <SelectItem value="andamento">Em Andamento</SelectItem>
-                        <SelectItem value="revisao">Em Revisão</SelectItem>
+                        <SelectItem value="execucao">Em Execução</SelectItem>
                         <SelectItem value="concluido">Concluído</SelectItem>
                         <SelectItem value="cancelado">Cancelado</SelectItem>
                       </SelectContent>

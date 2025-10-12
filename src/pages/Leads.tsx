@@ -34,18 +34,20 @@ interface Lead {
 
 const statusColors: Record<string, string> = {
   novo: "bg-blue-500/20 text-blue-500",
-  analise: "bg-yellow-500/20 text-yellow-500",
-  negociacao: "bg-purple-500/20 text-purple-500",
-  aceita: "bg-success/20 text-success",
-  recusada: "bg-destructive/20 text-destructive",
+  qualificado: "bg-yellow-500/20 text-yellow-500",
+  proposta: "bg-purple-500/20 text-purple-500",
+  negociacao: "bg-green-500/20 text-green-500",
+  ganho: "bg-success/20 text-success",
+  perdido: "bg-destructive/20 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
   novo: "Novo",
-  analise: "Em Análise",
-  negociacao: "Em Negociação",
-  aceita: "Aceito",
-  recusada: "Recusado",
+  qualificado: "Qualificado",
+  proposta: "Proposta",
+  negociacao: "Negociação",
+  ganho: "Ganho",
+  perdido: "Perdido",
 };
 
 const Leads = () => {
@@ -141,10 +143,11 @@ const Leads = () => {
           <SelectContent className="bg-popover">
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="novo">Novo</SelectItem>
-            <SelectItem value="analise">Em Análise</SelectItem>
-            <SelectItem value="negociacao">Em Negociação</SelectItem>
-            <SelectItem value="aceita">Aceito</SelectItem>
-            <SelectItem value="recusada">Recusado</SelectItem>
+            <SelectItem value="qualificado">Qualificado</SelectItem>
+            <SelectItem value="proposta">Proposta</SelectItem>
+            <SelectItem value="negociacao">Negociação</SelectItem>
+            <SelectItem value="ganho">Ganho</SelectItem>
+            <SelectItem value="perdido">Perdido</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -168,7 +171,7 @@ const Leads = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-foreground mb-1">{lead.nome}</h3>
-                    <Badge className={statusColors[status]}>
+                    <Badge className={statusColors[status] || ""}>
                       {statusLabels[status] || status}
                     </Badge>
                   </div>
