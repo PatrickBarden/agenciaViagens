@@ -93,7 +93,6 @@ export function NewMovimentacaoDialog() {
       toast.success("Movimentação criada com sucesso!");
       form.reset();
       setOpen(false);
-      window.location.reload();
     } catch (error: any) {
       console.error("Erro ao criar movimentação:", error);
       toast.error(error.message || "Erro ao criar movimentação");
