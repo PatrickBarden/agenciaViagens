@@ -1,4 +1,5 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +11,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Header = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Erro ao sair: " + error.message);
+    } else {
+      toast.success("Você saiu com sucesso.");
+      navigate("/login");
+    }
+  };
+
   return (
     <header className="fixed top-0 right-0 left-64 h-16 bg-card border-b border-border z-10 animate-fade-in">
       <div className="h-full px-6 flex items-center justify-between">
@@ -64,8 +81,8 @@ export const Header = () => {
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@barden.com</p>
+                  <p className="text-sm font-medium">{user?.user_metadata.name || "Usuário"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -75,7 +92,10 @@ export const Header = () => {
               <DropdownMenuItem>Perfil</DropdownMenuItem>
               <DropdownMenuItem>Configurações</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">Sair</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive gap-2 cursor-pointer">
+                <LogOut className="w-4 h-4" />
+                Sair
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
