@@ -34,17 +34,17 @@ interface Lead {
 
 const statusColors: Record<string, string> = {
   novo: "bg-blue-500/20 text-blue-500",
-  contato: "bg-yellow-500/20 text-yellow-500",
-  proposta: "bg-purple-500/20 text-purple-500",
-  negociacao: "bg-green-500/20 text-green-500",
+  contato_feito: "bg-yellow-500/20 text-yellow-500",
+  proposta_enviada: "bg-purple-500/20 text-purple-500",
+  em_negociacao: "bg-green-500/20 text-green-500",
   fechado: "bg-success/20 text-success",
 };
 
 const statusLabels: Record<string, string> = {
   novo: "Novo",
-  contato: "Contato Feito",
-  proposta: "Proposta Enviada",
-  negociacao: "Em Negociação",
+  contato_feito: "Contato Feito",
+  proposta_enviada: "Proposta Enviada",
+  em_negociacao: "Em Negociação",
   fechado: "Fechado",
 };
 
@@ -141,9 +141,9 @@ const Leads = () => {
           <SelectContent className="bg-popover">
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="novo">Novo</SelectItem>
-            <SelectItem value="contato">Contato Feito</SelectItem>
-            <SelectItem value="proposta">Proposta Enviada</SelectItem>
-            <SelectItem value="negociacao">Em Negociação</SelectItem>
+            <SelectItem value="contato_feito">Contato Feito</SelectItem>
+            <SelectItem value="proposta_enviada">Proposta Enviada</SelectItem>
+            <SelectItem value="em_negociacao">Em Negociação</SelectItem>
             <SelectItem value="fechado">Fechado</SelectItem>
           </SelectContent>
         </Select>
