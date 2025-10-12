@@ -116,7 +116,7 @@ export function NewMovimentacaoDialog() {
           tipo: values.tipo,
           data: values.data,
           criado_por: user.id,
-          cliente_id: values.cliente_id || null,
+          cliente_id: values.cliente_id === 'none' ? null : values.cliente_id,
         });
 
       if (error) throw error;
@@ -221,7 +221,7 @@ export function NewMovimentacaoDialog() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {clientes.map((cliente) => (
                         <SelectItem key={cliente.id} value={cliente.id}>
                           {cliente.nome}
