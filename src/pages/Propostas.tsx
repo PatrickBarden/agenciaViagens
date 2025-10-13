@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NewPropostaDialog } from "@/components/propostas/NewPropostaDialog";
 import { EditPropostaDialog } from "@/components/propostas/EditPropostaDialog";
+import { ViewPropostaDialog } from "@/components/propostas/ViewPropostaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -50,6 +51,7 @@ const Propostas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProposal, setSelectedProposal] = useState<Proposta | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const loadProposals = async () => {
     if (proposals.length === 0) setIsLoading(true);
@@ -86,9 +88,38 @@ const Propostas = () => {
     };
   }, []);
 
+  const handleView = (proposal: Proposta) => {
+    setSelectedProposal(proposal);
+    setIsViewDialogOpen(true);
+  };
+
   const handleEdit = (proposal: Proposta) => {
     setSelectedProposal(proposal);
     setIsEditDialogOpen(true);
+  };
+
+  const handleDuplicate = async (proposal: Proposta) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Você precisa estar logado para duplicar uma proposta.");
+      return;
+    }
+
+    toast.info("Duplicando proposta...");
+
+    const { error } = await supabase.from("propostas").insert({
+      cliente_id: proposal.cliente_id,
+      valor: proposal.valor,
+      status: 'enviada',
+      descricao: `(Cópia) ${proposal.descricao}`,
+      criado_por: user.id,
+    });
+
+    if (error) {
+      toast.error("Erro ao duplicar proposta: " + error.message);
+    } else {
+      toast.success("Proposta duplicada com sucesso!");
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -198,7 +229,7 @@ const Propostas = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-popover">
-                          <DropdownMenuItem className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleView(proposal)} className="gap-2 cursor-pointer">
                             <Eye className="w-4 h-4" />
                             Visualizar
                           </DropdownMenuItem>
@@ -206,7 +237,7 @@ const Propostas = () => {
                             <Edit className="w-4 h-4" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleDuplicate(proposal)} className="gap-2 cursor-pointer">
                             <Copy className="w-4 h-4" />
                             Duplicar
                           </DropdownMenuItem>
@@ -224,6 +255,12 @@ const Propostas = () => {
           </TableBody>
         </Table>
       </Card>
+
+      <ViewPropostaDialog
+        proposta={selectedProposal}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
 
       {selectedProposal && (
         <EditPropostaDialog
