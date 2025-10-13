@@ -1,21 +1,66 @@
-import { Save, Building, Palette, Globe } from "lucide-react";
+import { useRef, useState } from "react";
+import { Save, Building, Palette, Globe, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSettings } from "@/contexts/SettingsContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Configuracoes = () => {
+  const { logoUrl, primaryColor, setLogoUrl, setPrimaryColor } = useSettings();
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('settings')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('settings')
+        .getPublicUrl(filePath);
+
+      if (!data.publicUrl) {
+        throw new Error("Não foi possível obter a URL pública do logo.");
+      }
+
+      setLogoUrl(data.publicUrl);
+      toast.success("Logo atualizado com sucesso!");
+    } catch (error: any) {
+      console.error("Erro no upload do logo:", error);
+      toast.error(error.message || "Ocorreu um erro ao enviar o logo.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPrimaryColor(event.target.value);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Configurações do Sistema</h1>
         <p className="text-muted-foreground">Personalize e configure seu CRM</p>
       </div>
 
-      <Tabs defaultValue="empresa" className="space-y-6">
+      <Tabs defaultValue="aparencia" className="space-y-6">
         <TabsList className="bg-card">
           <TabsTrigger value="empresa" className="gap-2">
             <Building className="w-4 h-4" />
@@ -31,7 +76,6 @@ const Configuracoes = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Empresa Tab */}
         <TabsContent value="empresa" className="space-y-6">
           <Card className="p-6 shadow-card">
             <h3 className="text-lg font-semibold mb-6">Dados da Empresa</h3>
@@ -46,12 +90,10 @@ const Configuracoes = () => {
                   <Input id="cnpj" placeholder="00.000.000/0000-00" className="mt-1.5" />
                 </div>
               </div>
-
               <div>
                 <Label htmlFor="email">E-mail Corporativo</Label>
                 <Input id="email" type="email" defaultValue="contato@barden.com" className="mt-1.5" />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Telefone</Label>
@@ -62,12 +104,10 @@ const Configuracoes = () => {
                   <Input id="website" placeholder="www.barden.com" className="mt-1.5" />
                 </div>
               </div>
-
               <div>
                 <Label htmlFor="address">Endereço</Label>
                 <Textarea id="address" placeholder="Rua, número, bairro, cidade, estado" className="mt-1.5" />
               </div>
-
               <Button className="gap-2">
                 <Save className="w-4 h-4" />
                 Salvar Dados
@@ -76,7 +116,6 @@ const Configuracoes = () => {
           </Card>
         </TabsContent>
 
-        {/* Aparência Tab */}
         <TabsContent value="aparencia" className="space-y-6">
           <Card className="p-6 shadow-card">
             <h3 className="text-lg font-semibold mb-6">Personalização da Interface</h3>
@@ -84,24 +123,46 @@ const Configuracoes = () => {
               <div>
                 <Label htmlFor="logo">Logo da Empresa</Label>
                 <div className="mt-2 flex items-center gap-4">
-                  <div className="w-20 h-20 bg-primary rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-2xl">B</span>
+                  <div className="w-20 h-20 bg-card-hover rounded-lg flex items-center justify-center overflow-hidden">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo da Empresa" className="object-contain w-full h-full" />
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Logo</span>
+                    )}
                   </div>
-                  <Button variant="outline">Upload de Logo</Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    accept="image/png, image/jpeg, image/svg+xml"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="gap-2"
+                  >
+                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {isUploading ? "Enviando..." : "Upload de Logo"}
+                  </Button>
                 </div>
               </div>
-
               <div>
                 <Label>Cor Principal</Label>
-                <div className="mt-2 flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-primary border-2 border-white cursor-pointer"></div>
-                    <span className="text-sm text-muted-foreground">#1A75FF</span>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="relative w-10 h-10 rounded-lg border-2 border-border overflow-hidden">
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={handleColorChange}
+                      className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
+                    />
+                    <div className="w-full h-full" style={{ backgroundColor: primaryColor }}></div>
                   </div>
-                  <Button variant="outline" size="sm">Alterar Cor</Button>
+                  <span className="text-sm text-muted-foreground uppercase">{primaryColor}</span>
                 </div>
               </div>
-
               <div>
                 <Label>Tema</Label>
                 <div className="mt-2 grid grid-cols-2 gap-4">
@@ -115,16 +176,10 @@ const Configuracoes = () => {
                   </div>
                 </div>
               </div>
-
-              <Button className="gap-2">
-                <Save className="w-4 h-4" />
-                Salvar Aparência
-              </Button>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Integrações Tab */}
         <TabsContent value="integracoes" className="space-y-6">
           <Card className="p-6 shadow-card">
             <h3 className="text-lg font-semibold mb-6">Integrações Externas</h3>
@@ -136,7 +191,6 @@ const Configuracoes = () => {
                 </div>
                 <Button variant="outline">Configurar</Button>
               </div>
-
               <div className="p-4 rounded-lg bg-card-hover border border-border flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold mb-1">n8n</h4>
@@ -144,7 +198,6 @@ const Configuracoes = () => {
                 </div>
                 <Button variant="outline">Configurar</Button>
               </div>
-
               <div className="p-4 rounded-lg bg-card-hover border border-border flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold mb-1">Stripe</h4>
@@ -152,7 +205,6 @@ const Configuracoes = () => {
                 </div>
                 <Button variant="outline">Configurar</Button>
               </div>
-
               <div className="p-4 rounded-lg bg-card-hover border border-border flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold mb-1">E-mail Marketing</h4>
@@ -162,7 +214,6 @@ const Configuracoes = () => {
               </div>
             </div>
           </Card>
-
           <Card className="p-6 shadow-card">
             <h3 className="text-lg font-semibold mb-4">API Keys</h3>
             <p className="text-sm text-muted-foreground mb-4">

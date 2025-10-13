@@ -9,6 +9,7 @@ import {
   Settings 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/" },
@@ -21,14 +22,20 @@ const menuItems = [
 ];
 
 export const Sidebar = () => {
+  const { logoUrl } = useSettings();
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border animate-slide-in">
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">B</span>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="object-contain w-full h-full" />
+              ) : (
+                <span className="text-white font-bold text-sm">B</span>
+              )}
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">Barden</h1>
