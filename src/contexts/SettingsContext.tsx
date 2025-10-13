@@ -40,6 +40,16 @@ const hexToHsl = (hex: string): string => {
   return `${h} ${s}% ${l}%`;
 };
 
+const applyColorTheme = (color: string) => {
+  const root = document.documentElement;
+  const hslColor = hexToHsl(color);
+  root.style.setProperty('--primary', hslColor);
+  
+  const [h, s, l] = hslColor.split(' ').map(val => parseInt(val));
+  const hoverL = Math.max(0, l - 6);
+  root.style.setProperty('--primary-hover', `${h} ${s}% ${hoverL}%`);
+};
+
 interface SettingsContextType {
   logoUrl: string | null;
   primaryColor: string; // Stored as hex
@@ -49,37 +59,23 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-const DEFAULT_PRIMARY_COLOR = '#1A75FF'; // The original primary color
+const DEFAULT_PRIMARY_COLOR = '#1A75FF';
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [logoUrl, setLogoUrlState] = useState<string | null>(null);
   const [primaryColor, setPrimaryColorState] = useState<string>(DEFAULT_PRIMARY_COLOR);
 
-  // Load settings from localStorage on initial render
+  // On initial load, get settings from localStorage and apply them
   useEffect(() => {
     const savedLogoUrl = localStorage.getItem('crm_logo_url');
-    const savedPrimaryColor = localStorage.getItem('crm_primary_color');
-
     if (savedLogoUrl) {
       setLogoUrlState(savedLogoUrl);
     }
-    if (savedPrimaryColor) {
-      setPrimaryColorState(savedPrimaryColor);
-    }
-  }, []);
 
-  // Apply primary color to CSS variables whenever it changes
-  useEffect(() => {
-    if (primaryColor) {
-      const root = document.documentElement;
-      const hslColor = hexToHsl(primaryColor);
-      root.style.setProperty('--primary', hslColor);
-      
-      const [h, s, l] = hslColor.split(' ').map(val => parseInt(val));
-      const hoverL = Math.max(0, l - 6);
-      root.style.setProperty('--primary-hover', `${h} ${s}% ${hoverL}%`);
-    }
-  }, [primaryColor]);
+    const savedPrimaryColor = localStorage.getItem('crm_primary_color') || DEFAULT_PRIMARY_COLOR;
+    setPrimaryColorState(savedPrimaryColor);
+    applyColorTheme(savedPrimaryColor);
+  }, []);
 
   const setLogoUrl = (url: string | null) => {
     setLogoUrlState(url);
@@ -93,13 +89,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const setPrimaryColor = (color: string) => {
     setPrimaryColorState(color);
     localStorage.setItem('crm_primary_color', color);
+    applyColorTheme(color);
     toast.success("Cor principal atualizada!");
   };
 
   return (
     <SettingsContext.Provider value={{ logoUrl, primaryColor, setLogoUrl, setPrimaryColor }}>
       {children}
-    </SettingsContext.Provider>
+    </Settings-Context.Provider>
   );
 };
 
