@@ -38,10 +38,10 @@ const movimentacaoSchema = z.object({
     .max(200, { message: "Descrição deve ter no máximo 200 caracteres" }),
   valor: z.string()
     .min(1, { message: "Valor é obrigatório" })
-    .refine((val) => !isNaN(Number(val.replace(/[^\d,.-]/g, '').replace(',', '.'))), {
+    .refine((val) => !isNaN(Number(val.replace(/\./g, "").replace(",", "."))), {
       message: "Valor deve ser um número válido"
     })
-    .refine((val) => Number(val.replace(/[^\d,.-]/g, '').replace(',', '.')) > 0, {
+    .refine((val) => Number(val.replace(/\./g, "").replace(",", ".")) > 0, {
       message: "Valor deve ser maior que zero"
     }),
   tipo: z.enum(["entrada", "saida"], {
@@ -106,7 +106,7 @@ export function NewMovimentacaoDialog() {
         return;
       }
 
-      const valorNumerico = Number(values.valor.replace(/[^\d,.-]/g, '').replace(',', '.'));
+      const valorNumerico = Number(values.valor.replace(/\./g, "").replace(",", "."));
       const clienteIdToSend = (values.cliente_id && values.cliente_id !== 'none') ? values.cliente_id : null;
 
       const { error } = await supabase
@@ -177,7 +177,7 @@ export function NewMovimentacaoDialog() {
                     <FormLabel>Valor (R$)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ex: 5000.00"
+                        placeholder="Ex: 5000,00"
                         {...field}
                       />
                     </FormControl>

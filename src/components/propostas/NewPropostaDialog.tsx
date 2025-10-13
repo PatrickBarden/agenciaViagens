@@ -36,10 +36,10 @@ const propostaSchema = z.object({
   cliente_id: z.string().uuid({ message: "Selecione um cliente válido" }),
   valor: z.string()
     .min(1, { message: "Valor é obrigatório" })
-    .refine((val) => !isNaN(Number(val.replace(/[^\d,.-]/g, '').replace(',', '.'))), {
+    .refine((val) => !isNaN(Number(val.replace(/\./g, "").replace(",", "."))), {
       message: "Valor deve ser um número válido"
     })
-    .refine((val) => Number(val.replace(/[^\d,.-]/g, '').replace(',', '.')) > 0, {
+    .refine((val) => Number(val.replace(/\./g, "").replace(",", ".")) > 0, {
       message: "Valor deve ser maior que zero"
     }),
   status: z.enum(["enviada", "analise", "negociacao", "aceita", "recusada"], {
@@ -106,7 +106,7 @@ export function NewPropostaDialog() {
       }
 
       // Converter valor para número
-      const valorNumerico = Number(values.valor.replace(/[^\d,.-]/g, '').replace(',', '.'));
+      const valorNumerico = Number(values.valor.replace(/\./g, "").replace(",", "."));
 
       const { error } = await supabase
         .from("propostas")
@@ -181,7 +181,7 @@ export function NewPropostaDialog() {
                   <FormLabel>Valor da Proposta</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Ex: 35000.00 ou 35000,00"
+                      placeholder="Ex: 35000,00"
                       {...field}
                     />
                   </FormControl>

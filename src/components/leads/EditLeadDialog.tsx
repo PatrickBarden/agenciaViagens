@@ -45,7 +45,10 @@ const leadSchema = z.object({
   telefone: z.string().optional(),
   origem: z.string().optional(),
   status: z.enum(["novo", "qualificado", "proposta", "negociacao", "ganho", "perdido"]).optional(),
-  valor_potencial: z.string().optional(),
+  valor_potencial: z.string().optional().refine((val) => {
+    if (!val || val.trim() === "") return true;
+    return !isNaN(Number(val.replace(/\./g, "").replace(",", ".")));
+  }, { message: "Valor deve ser um número válido." }),
 });
 
 type LeadFormValues = z.infer<typeof leadSchema>;
@@ -80,7 +83,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
     setIsLoading(true);
     try {
       const valorNumerico = values.valor_potencial
-        ? Number(values.valor_potencial.replace(/[^\d,.-]/g, '').replace(',', '.'))
+        ? Number(values.valor_potencial.replace(/\./g, "").replace(",", "."))
         : null;
 
       const { error } = await supabase
