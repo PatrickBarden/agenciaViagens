@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NewPropostaDialog } from "@/components/propostas/NewPropostaDialog";
+import { EditPropostaDialog } from "@/components/propostas/EditPropostaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -28,6 +29,8 @@ interface Proposta {
   valor: number;
   status: string | null;
   created_at: string;
+  cliente_id: string;
+  descricao: string | null;
   clientes: {
     nome: string;
   } | null;
@@ -45,6 +48,8 @@ const Propostas = () => {
   const [proposals, setProposals] = useState<Proposta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProposal, setSelectedProposal] = useState<Proposta | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const loadProposals = async () => {
     if (proposals.length === 0) setIsLoading(true);
@@ -80,6 +85,11 @@ const Propostas = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleEdit = (proposal: Proposta) => {
+    setSelectedProposal(proposal);
+    setIsEditDialogOpen(true);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -147,7 +157,6 @@ const Propostas = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
@@ -158,13 +167,13 @@ const Propostas = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                 </TableCell>
               </TableRow>
             ) : filteredProposals.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   Nenhuma proposta encontrada.
                 </TableCell>
               </TableRow>
@@ -173,7 +182,6 @@ const Propostas = () => {
                 const status = proposal.status || "enviada";
                 return (
                   <TableRow key={proposal.id}>
-                    <TableCell className="font-medium">#{proposal.id.substring(0, 5)}</TableCell>
                     <TableCell>{proposal.clientes?.nome || "Cliente não encontrado"}</TableCell>
                     <TableCell className="font-semibold text-primary">{formatCurrency(proposal.valor)}</TableCell>
                     <TableCell>
@@ -190,19 +198,19 @@ const Propostas = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-popover">
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem className="gap-2 cursor-pointer">
                             <Eye className="w-4 h-4" />
                             Visualizar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem onClick={() => handleEdit(proposal)} className="gap-2 cursor-pointer">
                             <Edit className="w-4 h-4" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem className="gap-2 cursor-pointer">
                             <Copy className="w-4 h-4" />
                             Duplicar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-destructive">
+                          <DropdownMenuItem className="gap-2 text-destructive cursor-pointer">
                             <Trash2 className="w-4 h-4" />
                             Excluir
                           </DropdownMenuItem>
@@ -216,6 +224,14 @@ const Propostas = () => {
           </TableBody>
         </Table>
       </Card>
+
+      {selectedProposal && (
+        <EditPropostaDialog
+          proposta={selectedProposal}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+      )}
     </div>
   );
 };
