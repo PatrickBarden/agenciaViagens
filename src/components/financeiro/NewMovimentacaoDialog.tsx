@@ -107,6 +107,7 @@ export function NewMovimentacaoDialog() {
       }
 
       const valorNumerico = Number(values.valor.replace(/[^\d,.-]/g, '').replace(',', '.'));
+      const clienteIdToSend = (values.cliente_id && values.cliente_id !== 'none') ? values.cliente_id : null;
 
       const { error } = await supabase
         .from("financeiro")
@@ -116,7 +117,7 @@ export function NewMovimentacaoDialog() {
           tipo: values.tipo,
           data: values.data,
           criado_por: user.id,
-          cliente_id: values.cliente_id === 'none' ? null : values.cliente_id,
+          cliente_id: clienteIdToSend,
         });
 
       if (error) throw error;
