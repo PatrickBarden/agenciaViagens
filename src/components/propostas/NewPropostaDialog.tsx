@@ -42,7 +42,7 @@ const propostaSchema = z.object({
     .refine((val) => Number(val.replace(/[^\d,.-]/g, '').replace(',', '.')) > 0, {
       message: "Valor deve ser maior que zero"
     }),
-  status: z.enum(["enviada", "aceita", "recusada"], {
+  status: z.enum(["enviada", "analise", "negociacao", "aceita", "recusada"], {
     required_error: "Selecione um status",
   }),
   descricao: z.string()
@@ -204,6 +204,8 @@ export function NewPropostaDialog() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="enviada">Enviada</SelectItem>
+                      <SelectItem value="analise">Em Análise</SelectItem>
+                      <SelectItem value="negociacao">Em Negociação</SelectItem>
                       <SelectItem value="aceita">Aceita</SelectItem>
                       <SelectItem value="recusada">Recusada</SelectItem>
                     </SelectContent>
