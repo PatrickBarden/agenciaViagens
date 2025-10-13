@@ -22,19 +22,20 @@ const Configuracoes = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      // Usar um nome de arquivo único para evitar sobreposições
-      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `public/logo-${Date.now()}.${fileExt}`;
       
-      // Simplificando o caminho do arquivo
       const { error: uploadError } = await supabase.storage
         .from('settings')
-        .upload(fileName, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from('settings')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       if (!data.publicUrl) {
         throw new Error("Não foi possível obter a URL pública do logo.");

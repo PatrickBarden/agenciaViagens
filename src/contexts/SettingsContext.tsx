@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { toast } from "sonner";
 
 // Helper to convert hex to HSL, as the theme uses HSL values
 const hexToHsl = (hex: string): string => {
@@ -92,6 +93,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const setPrimaryColor = (color: string) => {
     setPrimaryColorState(color);
     localStorage.setItem('crm_primary_color', color);
+    toast.success("Cor principal atualizada!");
   };
 
   return (
