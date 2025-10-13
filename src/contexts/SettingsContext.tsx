@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
 
-// Helper to convert hex to HSL, as the theme uses HSL values
+// Helper to convert hex to HSL
 const hexToHsl = (hex: string): string => {
+  if (!hex) return "217 100% 54%"; // Default color if hex is invalid
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) {
     r = parseInt(hex[1] + hex[1], 16);
@@ -14,12 +17,8 @@ const hexToHsl = (hex: string): string => {
     b = parseInt(hex.substring(5, 7), 16);
   }
 
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h = 0, s = 0, l = (max + min) / 2;
 
   if (max !== min) {
@@ -52,7 +51,7 @@ const applyColorTheme = (color: string) => {
 
 interface SettingsContextType {
   logoUrl: string | null;
-  primaryColor: string; // Stored as hex
+  primaryColor: string;
   setLogoUrl: (url: string | null) => void;
   setPrimaryColor: (color: string) => void;
 }
@@ -62,35 +61,77 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 const DEFAULT_PRIMARY_COLOR = '#1A75FF';
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [logoUrl, setLogoUrlState] = useState<string | null>(null);
   const [primaryColor, setPrimaryColorState] = useState<string>(DEFAULT_PRIMARY_COLOR);
 
-  // On initial load, get settings from localStorage and apply them
+  // Load settings from DB when user is available
   useEffect(() => {
-    const savedLogoUrl = localStorage.getItem('crm_logo_url');
-    if (savedLogoUrl) {
-      setLogoUrlState(savedLogoUrl);
-    }
+    const fetchSettings = async () => {
+      if (!user) return;
 
-    const savedPrimaryColor = localStorage.getItem('crm_primary_color') || DEFAULT_PRIMARY_COLOR;
-    setPrimaryColorState(savedPrimaryColor);
-    applyColorTheme(savedPrimaryColor);
-  }, []);
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+          throw error;
+        }
+
+        if (data) {
+          setLogoUrlState(data.logo_url || null);
+          setPrimaryColorState(data.primary_color || DEFAULT_PRIMARY_COLOR);
+        } else {
+          // No settings found, use defaults
+          setLogoUrlState(null);
+          setPrimaryColorState(DEFAULT_PRIMARY_COLOR);
+        }
+      } catch (error: any) {
+        console.error("Error fetching user settings:", error);
+        toast.error("Não foi possível carregar suas configurações.");
+      }
+    };
+
+    fetchSettings();
+  }, [user]);
+
+  // Apply theme whenever primaryColor changes
+  useEffect(() => {
+    applyColorTheme(primaryColor);
+  }, [primaryColor]);
+
+  const upsertSetting = useCallback(async (setting: { logo_url?: string | null; primary_color?: string }) => {
+    if (!user) {
+      toast.error("Você precisa estar logado para salvar as configurações.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({ user_id: user.id, ...setting }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      if (setting.primary_color) toast.success("Cor principal atualizada!");
+      if (setting.logo_url !== undefined) toast.success("Logo atualizado com sucesso!");
+
+    } catch (error: any) {
+      console.error("Error saving setting:", error);
+      toast.error("Erro ao salvar configuração.");
+    }
+  }, [user]);
 
   const setLogoUrl = (url: string | null) => {
     setLogoUrlState(url);
-    if (url) {
-      localStorage.setItem('crm_logo_url', url);
-    } else {
-      localStorage.removeItem('crm_logo_url');
-    }
+    upsertSetting({ logo_url: url });
   };
 
   const setPrimaryColor = (color: string) => {
     setPrimaryColorState(color);
-    localStorage.setItem('crm_primary_color', color);
-    applyColorTheme(color);
-    toast.success("Cor principal atualizada!");
+    upsertSetting({ primary_color: color });
   };
 
   return (
