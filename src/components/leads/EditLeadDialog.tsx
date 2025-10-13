@@ -99,7 +99,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
 
       toast.success("Lead atualizado com sucesso!");
       onOpenChange(false);
-    } catch (error: any)
+    } catch (error: any) {
       console.error("Erro ao atualizar lead:", error);
       toast.error(error.message || "Erro ao atualizar lead.");
     } finally {
