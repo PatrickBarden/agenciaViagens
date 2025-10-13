@@ -60,6 +60,7 @@ export type Database = {
       }
       financeiro: {
         Row: {
+          cliente_id: string | null
           created_at: string
           criado_por: string | null
           data: string
@@ -69,6 +70,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
           data: string
@@ -78,6 +80,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
           data?: string
@@ -87,6 +90,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "financeiro_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "financeiro_criado_por_fkey"
             columns: ["criado_por"]
