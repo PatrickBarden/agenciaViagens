@@ -96,7 +96,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   return (
     <SettingsContext.Provider value={{ logoUrl, primaryColor, setLogoUrl, setPrimaryColor }}>
       {children}
-    </Settings-Context.Provider>
+    </SettingsContext.Provider>
   );
 };
 
